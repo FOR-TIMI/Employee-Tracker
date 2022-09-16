@@ -9,7 +9,6 @@ title VARCHAR(30) NOT NULL,
 salary DECIMAL NOT NULL,
 department_id INTEGER, 
 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL 
- SET FOREIGN_KEY_CHECKS = 0
 );
 
 CREATE TABLE employees(

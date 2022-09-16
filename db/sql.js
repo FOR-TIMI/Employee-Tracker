@@ -2,11 +2,13 @@ const mysql = require('mysql2');
 require('dotenv').config()
 
 class sql {
-
-    constructor(dbName = 'employee_tracker'){
-        this.dbName = dbName
+    //So you can create your database and set password easily
+    constructor(dbName = 'employee_tracker',password = ''){
+        this.dbName = dbName,
+        this.password = password
     }
    
+    //Connection to the database with authentication
     #getDB(){
         return mysql.createConnection(
             {
@@ -14,22 +16,18 @@ class sql {
               // Your MySQL username,
               user: 'root',
               // Your MySQL password
-              password: process.env.SQL_SECRET,
+              password: process.env.SQL_SECRET || this.password,
             }).promise();
     }
 
+    //Drops database if exists then creates a new database
    async #dropDB(){
     const db = this.#getDB();
       await db.query(`DROP DATABASE IF EXISTS ${this.dbName};`) 
       await db.query(`CREATE DATABASE ${this.dbName};`);
     }
 
-    #createDB(){
-     return `CREATE DATABASE ${this.dbName};`
-    }
-
-
-
+    //To query the database
     async #queryDB(query,params =''){
         const db = this.#getDB();
         await db.connect();
@@ -39,6 +37,7 @@ class sql {
    
     }
 
+    //Schema for the department table 
     #departmentSchema(){
         return  `CREATE TABLE departments(
               id INTEGER AUTO_INCREMENT PRIMARY KEY,
@@ -46,6 +45,7 @@ class sql {
             );`
     }
 
+    //Schema for the role table 
     #roleSchema(){
       return `CREATE TABLE roles( 
         id INTEGER AUTO_INCREMENT PRIMARY KEY,
@@ -56,6 +56,7 @@ class sql {
         );`
     }
 
+    //Schema for the employee table 
     #employeeSchema(){
      return `CREATE TABLE employees(
         id INTEGER AUTO_INCREMENT PRIMARY KEY,
@@ -68,54 +69,57 @@ class sql {
         );` 
     }
 
+    //Initializes the database with some seed data
    async init(){  
         await this.#dropDB();
         await this.#queryDB(this.#departmentSchema());
         await this.#queryDB(this.#roleSchema());   
         await this.#queryDB(this.#employeeSchema());
-        await this.#seed();
+        this.#seedAll();
     }
 
-    async #seed(){
-
-
+    //Seeds all the tables;
+     #seedAll(){
         //Seed Departments
        this.#seedDepartments();
 
-
-        
         //Seed Roles
         this.#seedRoles()
 
         //Seed Employees
         this.#seedEmployees();
-    
-
     }
 
    
-
+    //store seed Department for employees
+    //Refrences function to add each Department to the database 
     #seedDepartments(){
-        this.addDepartments('Sales');
-        this.addDepartments('Engineering');
-        this.addDepartments('Finance');
-        this.addDepartments('Legal');
+           const sampleDepartmentData = ['Sales', 'Engineering','Finance','Legal']
+           sampleDepartmentData.forEach(department => this.addDepartments(department))
     }
 
+    //store seed Data for roles
+    //Refrences function to add each role to the database 
     #seedRoles(){
-        this.addRoles('Sales Lead',100000,1);
-        this.addRoles('SalesPerson',300000,1);
-        this.addRoles('Lead Engineer',500000,2);
-        this.addRoles('Software Engineer',600000,2);
-        this.addRoles('Account Manager', 450000, 3);
-        this.addRoles('Accountant', 364000, 3);
-        this.addRoles('Legal Team Lead', 424000, 4);
-        this.addRoles('Lawyer', 700000, 4);
+        const sampleRoleData = [
+            {title:'Sales Lead', salary:100000,department_id:1 },
+            {title:'SalesPerson', salary:300000,department_id:1 },
+            {title:'Lead Engineer', salary:500000,department_id:2 },
+            {title:'Software Engineer', salary:600000,department_id:2 },
+            {title:'Account Manager', salary:450000,department_id:3 },
+            {title:'Accountant', salary:364000,department_id:3 },
+            {title:'Legal Team Lead', salary:424000,department_id:4 },
+            {title:'Lawyer', salary:700000,department_id:4 },
+        ]
+
+        sampleRoleData.forEach(role => this.addRoles(role.title,role.salary,role.department_id))   
     }
 
+    //store seed Data for employees
+    //Refrences function to add each employee to the database 
     async #seedEmployees(){
         //Seed Employees
-        const seedData = [
+        const sampleEmployeeData = [
         {first : 'John',last :  'Doe',roleId: 1},
         {first : 'Mike', last: 'Chan', roleId: 1, managerId : 1},
         {first: 'Ashley',last:'Rodriguez', roleId:3},
@@ -127,26 +131,27 @@ class sql {
         {first: 'Tom',last:'Allen', roleId: 8, managerId: 9},
         ]
 
-        seedData.forEach(e => {
+        sampleEmployeeData.forEach(e => {
                 this.addEmployees(e.first,e.last,e.roleId,e.managerId)
         })
  
     }
 
-    //Insert a Department
+    //Insert a Department to database
     addDepartments(params){
         const sql = `INSERT INTO departments(name)VALUES(?);`
         this.#queryDB(sql,params);
     }
     
-    //Insert a Role
-   addRoles(title,salary,department_id){
+
+    //Insert a Role to the database
+    addRoles(title,salary,department_id){
        const sql =  `INSERT INTO roles ( title , salary,department_id)VALUES (?,?,?)`;
        const params = [title,salary,department_id]
        this.#queryDB(sql,params);
     }
     
-    //Insert Employee
+    //Insert an Employee to the database
     addEmployees(first_name,last_name,role_id,manager_id){
         const sql = `INSERT INTO employees (first_name,last_name,role_id,manager_id)VALUES(?,?,?,?)`
         const params = [first_name,last_name,role_id,manager_id]
