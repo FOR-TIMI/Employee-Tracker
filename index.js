@@ -13,8 +13,21 @@ const sql = require('./db/sql');
 // sql.init();
 
 sql.viewAllEmployees();
+sql.viewAllRoles();
 
-sql.viewAllEmployees();
+// async function init(){
+
+// sql.viewAllEmployees()
+// }
+// init();
+
+// sql.addEmployees('Tommy','Gheller',3,5);
+// sql.viewAllEmployees();
+// sql.addDepartments('Services');
+sql.viewAllDepartments();
+
+
+
 
 
 
