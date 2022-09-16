@@ -1,0 +1,166 @@
+const mysql = require('mysql2');
+require('dotenv').config()
+
+class sql {
+    //So you can create your database and set password easily
+    constructor(dbName = 'employee_tracker',password = ''){
+        this.dbName = dbName,
+        this.password = password
+    }
+   
+    //Connection to the database with authentication
+    #getDB(){
+        return mysql.createConnection(
+            {
+              host: 'localhost',
+              // Your MySQL username,
+              user: 'root',
+              // Your MySQL password
+              password: process.env.SQL_SECRET || this.password,
+            }).promise();
+    }
+
+    //Drops database if exists then creates a new database
+   async #dropDB(){
+    const db = this.#getDB();
+      await db.query(`DROP DATABASE IF EXISTS ${this.dbName};`) 
+      await db.query(`CREATE DATABASE ${this.dbName};`);
+    }
+
+    //To query the database
+    async #queryDB(query,params =''){
+        const db = this.#getDB();
+        await db.connect();
+        await db.query(`USE ${this.dbName}`);
+        await db.query(`SET FOREIGN_KEY_CHECKS = 0;`)
+       return await db.query(query,params);
+   
+    }
+
+    //Schema for the department table 
+    #departmentSchema(){
+        return  `CREATE TABLE departments(
+              id INTEGER AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(30) NOT NULL
+            );`
+    }
+
+    //Schema for the role table 
+    #roleSchema(){
+      return `CREATE TABLE roles( 
+        id INTEGER AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(30) NOT NULL,
+        salary DECIMAL NOT NULL,
+        department_id INTEGER, 
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
+        );`
+    }
+
+    //Schema for the employee table 
+    #employeeSchema(){
+     return `CREATE TABLE employees(
+        id INTEGER AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(30) NOT NULL,
+        last_name VARCHAR(30) NOT NULL,
+        role_id INTEGER,
+        manager_id INTEGER, 
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
+        FOREIGN KEY (manager_id) REFERENCES employees(id) ON DELETE SET NULL
+        );` 
+    }
+
+    //Initializes the database with some seed data
+   async init(){  
+        await this.#dropDB();
+        await this.#queryDB(this.#departmentSchema());
+        await this.#queryDB(this.#roleSchema());   
+        await this.#queryDB(this.#employeeSchema());
+        this.#seedAll();
+    }
+
+    //Seeds all the tables;
+     #seedAll(){
+        //Seed Departments
+       this.#seedDepartments();
+
+        //Seed Roles
+        this.#seedRoles()
+
+        //Seed Employees
+        this.#seedEmployees();
+    }
+
+   
+    //store seed Department for employees
+    //Refrences function to add each Department to the database 
+    #seedDepartments(){
+           const sampleDepartmentData = ['Sales', 'Engineering','Finance','Legal']
+           sampleDepartmentData.forEach(department => this.addDepartments(department))
+    }
+
+    //store seed Data for roles
+    //Refrences function to add each role to the database 
+    #seedRoles(){
+        const sampleRoleData = [
+            {title:'Sales Lead', salary:100000,department_id:1 },
+            {title:'SalesPerson', salary:300000,department_id:1 },
+            {title:'Lead Engineer', salary:500000,department_id:2 },
+            {title:'Software Engineer', salary:600000,department_id:2 },
+            {title:'Account Manager', salary:450000,department_id:3 },
+            {title:'Accountant', salary:364000,department_id:3 },
+            {title:'Legal Team Lead', salary:424000,department_id:4 },
+            {title:'Lawyer', salary:700000,department_id:4 },
+        ]
+
+        sampleRoleData.forEach(role => this.addRoles(role.title,role.salary,role.department_id))   
+    }
+
+    //store seed Data for employees
+    //Refrences function to add each employee to the database 
+    async #seedEmployees(){
+        //Seed Employees
+        const sampleEmployeeData = [
+        {first : 'John',last :  'Doe',roleId: 1},
+        {first : 'Mike', last: 'Chan', roleId: 1, managerId : 1},
+        {first: 'Ashley',last:'Rodriguez', roleId:3},
+        {first: 'Martin',last:'Lawrence', roleId:4, managerId : 3},
+        {first: 'Kevin',last:'Tupik', roleId:4, managerId: 3},
+        {first: 'Kunal',last:'Singh', roleId:5},
+        {first: 'Malia',last:'Brown', roleId:6, managerId: 6},
+        {first: 'Sarah',last:'Lourd', roleId:7},
+        {first: 'Tom',last:'Allen', roleId: 8, managerId: 9},
+        ]
+
+        sampleEmployeeData.forEach(e => {
+                this.addEmployees(e.first,e.last,e.roleId,e.managerId)
+        })
+ 
+    }
+
+    //Insert a Department to database
+    addDepartments(params){
+        const sql = `INSERT INTO departments(name)VALUES(?);`
+        this.#queryDB(sql,params);
+    }
+    
+
+    //Insert a Role to the database
+    addRoles(title,salary,department_id){
+       const sql =  `INSERT INTO roles ( title , salary,department_id)VALUES (?,?,?)`;
+       const params = [title,salary,department_id]
+       this.#queryDB(sql,params);
+    }
+    
+    //Insert an Employee to the database
+    addEmployees(first_name,last_name,role_id,manager_id){
+        const sql = `INSERT INTO employees (first_name,last_name,role_id,manager_id)VALUES(?,?,?,?)`
+        const params = [first_name,last_name,role_id,manager_id]
+        this.#queryDB(sql,params);
+    }
+
+
+}
+
+
+
+module.exports = new sql();
