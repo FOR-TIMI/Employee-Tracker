@@ -1,4 +1,5 @@
 const mysql = require('mysql2');
+const cTable = require('console.table')
 require('dotenv').config()
 
 class sql {
@@ -156,6 +157,65 @@ class sql {
         const sql = `INSERT INTO employees (first_name,last_name,role_id,manager_id)VALUES(?,?,?,?)`
         const params = [first_name,last_name,role_id,manager_id]
         this.#queryDB(sql,params);
+    }
+
+    updateManager(){
+
+    }
+
+    viewByManager(){
+
+    }
+   
+    // View employees by department.
+    viewByDepartment(){
+
+    }
+
+    // Delete departments, roles, and employees.
+    deleteDepartment(){
+
+    }
+
+    deleteRoles(){
+
+    }
+
+    deleteEmployees(){
+
+    }
+
+    // View the total utilized budget of a department—in other words, the combined salaries of all employees in that department.
+    viewBudget(){
+
+    }
+// create the pool
+    #createPool(){
+        const pool = mysql.createPool({host:'localhost', user: 'root', database: this.dbName, password: process.env.SQL_SECRET || this.password,});
+        const promisePool = pool.promise();
+   return promisePool
+    }
+
+    async viewAllEmployees(){
+        const pool = this.#createPool();
+        // query database using promises
+        const [rows] = await pool.query('SELECT * FROM employees');
+        const employees = cTable.getTable(rows);
+        console.log(employees);
+    }
+
+    async viewAllDepartments(){
+        const pool = this.#createPool();
+        const [rows] = await pool.query('SELECT * FROM departments');
+        const departments = cTable.getTable(rows);
+        console.log(departments);
+    }
+
+    async viewAllRoles(){
+        const pool = this.#createPool();
+        const [rows] = await pool.query('SELECT * FROM roles');
+        const roles = cTable.getTable(rows);
+        console.log(roles);
     }
 
 

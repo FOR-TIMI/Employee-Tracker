@@ -10,7 +10,13 @@ const sql = require('./db/sql');
 
 
 
-sql.init();
+// sql.init();
+
+sql.viewAllEmployees();
+
+sql.viewAllEmployees();
+
+
 
 
 
