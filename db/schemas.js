@@ -52,21 +52,13 @@ async function createTables(){
     return await app.setSchemas();
 }
 
-const createDatabase = require('./db');
-const seedTables = require('./seeds');
 
 
-async function initalizeDatabase(){
-    
-    setTimeout(createDatabase,300);
-    setTimeout(createTables,500);
-    setTimeout(seedTables,600);
-}
+module.exports = createTables;
 
 
 
-initalizeDatabase();
 
-// createTables();
+
 
 
