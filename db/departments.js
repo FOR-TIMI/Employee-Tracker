@@ -14,6 +14,7 @@ class department{
     async #init(){
        await this.#createDatabase();
        await this.#setSchema();
+       await this.#seedDepartments();
     }
 
     #dataBaseConnection(){
@@ -42,8 +43,8 @@ class department{
 
         await con.connect();
         await con.query(useDB);
-        const [rows] = await con.query(sql,params);
-        console.log(cTable.getTable(rows));
+        const [rows,fields] = await con.query(sql,params);
+        // console.log(cTable.getTable(rows));
         
     }
 
@@ -58,42 +59,38 @@ class department{
 
     }
 
-    
 
-
-
-
-
-
-
-
-
-    
-
-    // async #insertData(sql,params){
-    //     const pool = mysql.createPool({host:'localhost', user: 'root', database: this.dbName, password: process.env.SQL_SECRET || this.password,});
-    //     const promisePool = pool.promise();
-    //     await promisePool.query(sql,params);
-    // }
-
-
-
-        //store seed Department for employees
+    //store seed Department for employees
     //Refrences function to add each Department to the database 
-    // #seedDepartments(){
-    //     const sampleDepartmentData = ['Sales', 'Engineering','Finance','Legal']
-    //     sampleDepartmentData.forEach(department => this.addDepartments(department))
-    // }
+    async #seedDepartments(){
+        const sampleDepartmentData = ['Sales', 'Engineering','Finance','Legal']
+        const sql = `INSERT INTO departments(name)VALUES(?);`
+        sampleDepartmentData.forEach(async department => await this.queryDB(sql,department));
+    }
+
+    //Insert a Department to database
+    async addDepartment(params){
+        const sql = `INSERT INTO departments(name)VALUES(?);`
+        // query database using promises
+        await this.queryDB(sql,params);
+    }
+
+    //To view all departments
+    async viewAllDepartments(){
+        const con = this.#dataBaseConnection();
+        const useDB = `USE ${this.dbName};`;
+
+        await con.connect();
+        await con.query(useDB);
+        const [rows,fields] = await con.query('SELECT * FROM departments');
+        const departments = cTable.getTable(rows);
+        console.log(departments);
+    }
+
+    
 
 
 
-      //Insert a Department to database
-    // async addDepartments(params){
-    //     const sql = `INSERT INTO departments(name)VALUES(?);`
-    //     const pool = this.#createPool();
-    //     // query database using promises
-    //     await pool.query(sql,params);
-    // }
 
     // deleteEmployees(){
 
@@ -110,4 +107,20 @@ class department{
 }
 
 const dept =  new department();
+
+let num = 0
+const departments = setInterval(() => {
+           num += 1;
+          
+           if(num === 1) {
+            dept.addDepartment(['Music']);
+
+           }
+           if(num == 3){
+            dept.viewAllDepartments();
+            clearInterval(departments);
+           }
+
+},1000)
+
 
