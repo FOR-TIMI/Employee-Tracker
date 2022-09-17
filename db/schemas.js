@@ -1,8 +1,7 @@
+const { query} = require('../utils/helper')
 
-const mysql = require('mysql2');
-require('dotenv').config()
 
-function createTables(){
+async function createTables(){
     const app = {}
 
     app.setSchemas = async function(){
@@ -11,28 +10,6 @@ function createTables(){
            await this.setEmployeeSchema();
     }
 
-    app.connection =  async function(){
-        return mysql.createConnection(
-            {
-                host: 'localhost',
-                // Your MySQL username,
-                user: 'root',
-                // Your MySQL password
-                password: process.env.SQL_SECRET,
-                //The database name
-                database: 'employee_tracker'
-            })
-         
-    }
-
-    app.queryDB = async function(sql){
-        const db = await this.connection();
-
-         db.connect();
-         db.query(`USE employee_tracker;`);
-         db.query(sql);
-
-    }
    
     app.setDepartmentSchema = async function(){
        //Schema for the department table 
@@ -41,7 +18,7 @@ function createTables(){
       name VARCHAR(30) NOT NULL
       );`
 
-    await this.queryDB(sql);
+    await query(sql);
     return;
     }
 
@@ -55,7 +32,7 @@ function createTables(){
             FOREIGN KEY (department_id) REFERENCES roles(id) ON DELETE SET NULL
             );`
     
-           await this.queryDB(sql);
+           await query(sql);
            return;
     }
     app.setEmployeeSchema = async function(){
@@ -68,23 +45,28 @@ function createTables(){
             FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
             FOREIGN KEY (manager_id) REFERENCES employees(id) ON DELETE SET NULL
             );` 
-        await this.queryDB(sql);
+        await query(sql);
         return;
     }
 
-    return app.setSchemas();
+    return await app.setSchemas();
 }
 
 const createDatabase = require('./db');
 const seedTables = require('./seeds');
 
 
-async function init(){
-    await createDatabase()
-    await createTables()
-    await seedTables()
+async function initalizeDatabase(){
+    
+    setTimeout(createDatabase,300);
+    setTimeout(createTables,500);
+    setTimeout(seedTables,600);
 }
 
-init()
+
+
+initalizeDatabase();
+
+// createTables();
 
 

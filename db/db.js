@@ -2,10 +2,10 @@
 const mysql = require('mysql2');
 require('dotenv').config()
 
-function createDatabase(dbName='employee_tracker'){
+function createDatabase(){
   const app = {};
 
-  app.dbName = dbName;
+  app.dbName = 'employee_tracker';
 
   app.databaseConnection = function(){
     const con = mysql.createConnection(
