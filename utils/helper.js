@@ -1,19 +1,22 @@
 const mysql = require('mysql2');
+const cTable = require('console.table');
+const inquirer = require('inquirer');
+
 require('dotenv').config();
 
 
+const config =   {
+    host: 'localhost',
+    // Your MySQL username,
+    user: 'root',
+    // Your MySQL password
+    password: process.env.SQL_SECRET,
+    //The database name
+    database: 'employee_tracker'
+}
+
 const connection = async function(){
-    return mysql.createConnection(
-        {
-            host: 'localhost',
-            // Your MySQL username,
-            user: 'root',
-            // Your MySQL password
-            password: process.env.SQL_SECRET,
-            //The database name
-            database: 'employee_tracker'
-        })
-     
+    return mysql.createConnection(config); 
 }
 
 
@@ -27,13 +30,55 @@ const query = async function(sql,params){
     }
     else{
         db.query(sql);
+    }  
+}
+
+const promptFeatures =  function(){
+ inquirer.prompt([
+    {
+        name : 'option',
+        message: 'What would you like to do?',
+        type : 'list',
+        choices : ['View All Departments',
+                'View All Roles',
+                'View All Employees',
+                'Add Department',
+                'Add Role',
+                'Add Employee',
+                'Update Employee Role'
+                 ]
     }
-
+]).then((answer) => {
+    switch(answer.option){
+        case 'View All Departments' : select(`SELECT * FROM departments;`);
+        break;
+        case 'View All Roles':  select(`SELECT * FROM roles;`);
+        break;
+        case 'View All Employees': select(`SELECT * FROM employees;`);
+        break;
+        case 'Add Department': this.addDepartment();
+        break;
+        case 'Add Role': this.addRole();
+        break;
+        case 'Update Employee Role': this.updateEmployeeRole();
+        break;
+    }
    
-
+}) 
 }
 
 
+const select =async function(sql){
+    const pool = mysql.createPool(config).promise();
+    const [rows] = await pool.query(sql);
+    const data = cTable.getTable(rows);
+    console.log(data);
+    promptFeatures();
 
-module.exports = {query};
+    
+};
+
+
+
+module.exports = {query, select,promptFeatures};
 
