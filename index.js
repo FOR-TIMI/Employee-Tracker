@@ -1,13 +1,8 @@
-const mysql = require('mysql2');
-const cTable = require('console.table');
-const sql = require('./db/sql');
 
-
-const createDatabase = require('./db/db');
-const seedTables = require('./db/seeds');
-const createTables = require('./db/schemas');
+const createDatabase = require('./db/db.js');
+const seedTables = require('./db/seeds.js');
+const createTables = require('./db/schemas.js');
 const { promptFeatures } = require('./utils/helper');
-
 
 
 
@@ -29,19 +24,15 @@ function init(){
             //add sample data to tables
             fulfill_2(seedTables());
         });
-       await new Promise(function (fulfill_2, reject_2) {
+          await new Promise(function (fulfill_3, reject_2) {
             //add sample data to tables
-            promptFeatures();
+            fulfill_3(promptFeatures());
         });
+     
+         
       }
       
       
-
-    app.selectOption = function(){
-       
-
-    }
-
 
     app.initializeDatabase();
     // app.selectOption();
