@@ -34,7 +34,7 @@ const query = async function(sql,params){
 }
 
 const promptFeatures =  function(){
- inquirer.prompt([
+ return inquirer.prompt([
     {
         name : 'option',
         message: 'What would you like to do?',
@@ -56,7 +56,7 @@ const promptFeatures =  function(){
         break;
         case 'View All Employees': select(`SELECT * FROM employees;`);
         break;
-        case 'Add Department': this.addDepartment();
+        case 'Add Department': promptDepartmentInsert();
         break;
         case 'Add Role': this.addRole();
         break;
@@ -68,17 +68,24 @@ const promptFeatures =  function(){
 }
 
 
+
+
 const select =async function(sql){
     const pool = mysql.createPool(config).promise();
     const [rows] = await pool.query(sql);
     const data = cTable.getTable(rows);
     console.log(data);
     promptFeatures();
+   
+};
 
-    
+const manipulateTable = async function(sql,params){
+    const pool = mysql.createPool(config).promise();
+    await pool.query(sql,params);
+    promptFeatures();    
 };
 
 
 
-module.exports = {query, select,promptFeatures};
+module.exports = {query, select,promptFeatures, manipulateTable};
 
