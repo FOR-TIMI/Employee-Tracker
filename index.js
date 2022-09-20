@@ -1,14 +1,402 @@
+const inquirer = require('inquirer');
+const chalk = require('chalk');
+const mysql = require('mysql2');
+require('dotenv').config();
+const cTable = require('console.table');
 
 const createDatabase = require('./db/db.js');
 const seedTables = require('./db/seeds.js');
 const createTables = require('./db/schemas.js');
-const { promptFeatures } = require('./utils/helper');
+
+const config =  {
+    host: 'localhost',
+    // Your MySQL username,
+    user: 'root',
+    // Your MySQL password
+    password: process.env.SQL_SECRET,
+    //The database name
+    database: 'employee_tracker'
+}
 
 
+const select =async function(sql){
+    const pool = mysql.createPool(config).promise();
+    const [rows] = await pool.query(sql);
+    const data = cTable.getTable(rows);
+    console.log('\n', chalk.blue(data));
+    promptFeatures();
+   
+};
 
-function initializeDatabase(){
+const get = async function(sql){
+    const pool = mysql.createPool(config).promise();
+    const [rows] = await pool.query(sql);
+    return rows
+}
+
+const manipulateTable = async function(sql,params){
+    const pool = mysql.createPool(config).promise();
+    await pool.query(sql,params);
+    promptFeatures();    
+};
+   
+function promptFeatures(){
+    const department = new Department();
+    const role = new Role();
+    const employee = new Employee();
+    return inquirer.prompt([
+       {
+           name : 'option',
+           message: 'What would you like to do?',
+           type : 'list',
+           choices : [
+                   'View All Departments',
+                   'View All Roles',
+                   'View All Employees',
+                   'Add Department',
+                   'Add Role',
+                   'Add Employee',
+                   'Update Employee Role',
+                   'Update department',
+                   'Delete department',
+                   'Delete Role'
+                    ]
+       }
+   ]).then((answer) => {
+       switch(answer.option){
+           case 'View All Departments' : department.viewAll();
+           break;
+           case 'View All Roles':  role.viewAll();
+           break;
+           case 'View All Employees': employee.viewAll();
+           break;
+           case 'Add Department': department.insert();
+           break;
+           case 'Add Role': role.add();
+           break;
+           case 'Add Employee': employee.add();
+           break;
+           case 'Update Employee Role': employee.updateEmployeeRole();
+           break;
+           case 'Update department': department.update();
+           break;
+           case 'Delete department': department.delete();
+           break;
+           case 'Delete Role': role.delete();
+           break;
+       }
+      
+   }) 
+   }
+
+class Department{
+
+
+ // To view all the existing departments 
+  viewAll(){
+    select(`SELECT * FROM departments`); 
+   }
+
+   //To insert into the departments table
+   insert(){
+        const question = [
+            {
+                name : 'departmentName',
+                message: 'What department do you wish to add?',
+                type : 'input',
+                validate:function(val){
+                    //Checks if the value is a valid string 
+                    if(!/^-?[\d.]+(?:e-?\d+)?$/.test(val)){
+                        return true;
+                    } 
+                    else{
+                        console.log(chalk.red('Please enter a valid string'))
+                        return false ;
+                    }                
+                  }
+                }     
+             ];
+        
+         inquirer.prompt(question)
+         .then(answers=> {
+            const sql = `INSERT INTO departments(name)VALUES(?);`
+            manipulateTable(sql,answers.departmentName);
+            console.log( chalk.green(`\n added ${answers.departmentName} to the database \n`))
+         })
+
+     };
+ 
+  //To update an existing department
+   async update(){
+        const departments = await get(`SELECT id AS value, name FROM departments`);
+
+        const questions = [
+            {
+                name : 'departmentId',
+                message: 'what is the department do you want to update?',
+                type : 'list',
+                choices: departments,
+             },
+             {
+                name : 'newDepartmentName',
+                message: 'what new changes would you like to set?',
+                type : 'input',
+                validate: function(val){
+                    if(val.length){
+                        return !/^-?[\d.]+(?:e-?\d+)?$/.test(val) || console.log(chalk.red('Please enter a valid string')) ;
+                    }
+                    return false               
+                    }
+            }
+             
+        ]
+
+
+        inquirer.prompt(questions)
+        .then(
+         ({departmentId,newDepartmentName }) => {
+            const sql = `UPDATE departments
+            SET name = ?
+            WHERE id = ?;
+           `
+           const oldDepartment = departments.find(d => d.value === departmentId)
+           const oldDepartmentName = oldDepartment.name
+           manipulateTable(sql,[newDepartmentName,departmentId])        
+           console.log(chalk.green(`\n ${oldDepartmentName} now set to ${newDepartmentName} \n`))
+        })
+
+   }
+
+
+   async delete(){
+         const departments = await get(`SELECT id AS value, name FROM departments`);
+         const questions = [{
+            name : 'departmentId',
+            message: 'What department do you wish to delete?',
+            type : 'list',
+            choices: departments
+          }]
+
+         inquirer.prompt(questions)
+         .then(({departmentId}) => {
+             const sql = `DELETE FROM departments WHERE id = ?` 
+             const deletedDepartment = departments.find(d => d.value === departmentId)
+             const deletedDepartmentName = deletedDepartment.name
+            manipulateTable(sql,departmentId);           
+            console.log(chalk.red(`\n The ${deletedDepartmentName} department was deleted \n`))
+        })
+    }
+
+}
+
+class Role{
+
+    async add(){
+        const departments  = await get(`SELECT id AS value, name FROM departments`)
+        const questions =   [
+        // To set the name of the role
+        {
+            name : 'title',
+            message: 'what is the name of the role?',
+            type: 'input',
+            validate: function(val){
+                //Checks if the value is a valid string
+                if(val.length){
+                    return !/^-?[\d.]+(?:e-?\d+)?$/.test(val) || console.log(chalk.red('Please enter a valid string')) ;
+                }
+                return false
+                                
+                }
+        },
+        //To set the salary of the role
+        {
+        name: 'salary',
+        message: 'what is the salary of the role?',
+        type: 'input',
+        validate:  function(val){
+            //Checks if the value is a valid number
+            if(val.length){
+                return /^-?[\d.]+(?:e-?\d+)?$/.test(val) || console.log(chalk.red('Please enter a valid string')) ;
+            }
+            return false                    
+        }
+       
+        },
+        //department Id
+        {
+        name: 'departmentId',
+        message: 'what department would you like to add to?',
+        type: 'list',
+        choices :  departments,
+        }
+       ]
+            inquirer.prompt(questions)
+            .then(({title,salary,departmentId}) => {
+                const sql =  `INSERT INTO roles ( title , salary,department_id)VALUES (?,?,?)`;
+                const department = departments.find(d => d.value === departmentId)
+                const departmentName = department.name
+                manipulateTable(sql,[title,salary,departmentId]);
+                console.log(chalk.green(`\n Added new ${ title } role to the ${departmentName} department \n`));
+            })
+    }
+
+    async delete(){
+        const roles = await get(`SELECT id AS value, title AS name FROM roles`)
+     
+        const questions =  {
+            name: 'roleId',
+            message: 'what role do you wish to delete?',
+            type: 'list',
+            choices : roles
+           };
+
+        inquirer.prompt(questions)
+            .then(({roleId}) => {
+                const sql = `DELETE FROM roles WHERE id = ?`
+                const role = roles.find(r => r.value === roleId)
+                const roleName = role.name
+                manipulateTable(sql,roleId)
+                console.log( chalk.red(`The ${roleName} role has been deleted`));
+            })
+    }
+
+    viewAll(){
+        select(`SELECT * from roles`)
+    }
+}
+
+class Employee{
+    viewAll(){
+        const sql =  `SELECT e.id, e.first_name, e.last_name,
+        m.first_name AS manager_name,
+        r.title AS role, r.salary,
+        departments.name AS department
+        FROM employees e 
+         LEFT JOIN employees m
+         ON e.manager_id = m.id
+         LEFT JOIN  roles r
+         ON e.role_id = r.id
+         LEFT JOIN departments
+         ON r.department_id = departments.id;
+         `
+        select(sql); 
+    }
+
+    async add(){
+        const roles = await get(`SELECT id AS value, title AS name from roles`);
+        const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
+                                    AS name
+                                    FROM employees 
+                                    WHERE manager_id IS NOT NULL`);
+        managers.unshift({name: 'None', value: ''})
+
+        const questions =  [ 
+            //To set employee first name
+            {
+            name : 'firstName',
+            message: 'Enter first name of the employee',
+            type: 'input',
+            validate: function(val){
+                //Checks if the value is a valid string
+                if(val.length){
+                    return !/^-?[\d.]+(?:e-?\d+)?$/.test(val) || console.log(chalk.red('Please enter a valid string')) ;
+                }
+                return false
+                                
+                }
+            },
+            //To set employee last name
+            {
+            name : 'lastName',
+            message: 'Enter last name of the employee',
+            type: 'input',
+            validate: function(val){
+                //Checks if the value is a valid string
+                if(val.length){
+                    return !/^-?[\d.]+(?:e-?\d+)?$/.test(val) || console.log(chalk.red('Please enter a valid string')) ;
+                }
+                return false
+                                
+                }
+            },
+            //To set role ID
+            {
+            name : 'roleId',
+            message: 'what is the role of the employee',
+            type: 'list',
+            choices: roles  
+            },
+            {
+            name: 'managerId',
+            message: 'what is your manager\'s name?',
+            type: 'list',
+            choices : managers
+          }
+         ];
+
+        inquirer.prompt(questions)
+        .then((
+            {
+                firstName,
+                lastName,
+                roleId,
+                managerId
+            }
+        ) => {
+         if(managerId){
+          const sql = `INSERT INTO employees (first_name,last_name,role_id,manager_id)VALUES(?,?,?,?)`
+          manipulateTable(sql,[firstName,lastName,roleId,managerId]);
+          console.log(chalk.green(`\n Added ${firstName} ${lastName} to the list of employees \n`));
+
+         }
+         else{
+         const sql = `INSERT INTO employees (first_name,last_name,role_id)VALUES(?,?,?)`
+             manipulateTable(sql,[firstName,lastName,roleId]);
+            console.log(chalk.green(`\n Added ${firstName} ${lastName} to the list of employees \n`));
+         }
+        })
+    }
+
+    async updateEmployeeRole(){
+
+        
+        const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
+        const roles = await get(`SELECT id as value, title AS name from roles`);
+        const questions = [
+            {
+            name : 'employeeId',
+            message: 'what employee\'s role would you like to update?',
+            type: 'list',
+            choices: employees
+            },
+            {
+            name : 'roleId',
+            message: 'what role would you like to set?',
+            type: 'list',
+            choices: roles
+            },
+        
+        ]
+        
+        inquirer.prompt(questions)
+        .then(({employeeId, roleId}) => {
+            const sql = `UPDATE employees
+            SET role_id = ?
+            WHERE id = ?;
+            `;
+            const employee= employees.find(e => e.value === employeeId);
+            const employeeName = employee.name;
+            const role = roles.find(r => r.value === roleId);
+            const roleName = role.name
+            manipulateTable(sql,[roleId,employeeId]);
+            console.log(chalk.green(` \n You set ${employeeName}'s role to ${roleName} \n`))
+    })
+    }
+}
+
+async function init(){
     const app = {};
-
+    
 
 
     app.initializeDatabase = async function(){
@@ -30,11 +418,22 @@ function initializeDatabase(){
       
 
     app.initializeDatabase();
-    // app.selectOption();
+    await promptFeatures();
+    
+
 
 }
+init();
 
 
-initializeDatabase();
-promptFeatures();
+
+
+
+
+
+
+
+
+
+
 
