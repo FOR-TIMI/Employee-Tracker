@@ -6,7 +6,7 @@ const { promptFeatures } = require('./utils/helper');
 
 
 
-function init(){
+function initializeDatabase(){
     const app = {};
 
 
@@ -24,11 +24,6 @@ function init(){
             //add sample data to tables
             fulfill_2(seedTables());
         });
-          await new Promise(function (fulfill_3, reject_2) {
-            //add sample data to tables
-            fulfill_3(promptFeatures());
-        });
-     
          
       }
       
@@ -40,4 +35,6 @@ function init(){
 }
 
 
-init();
+initializeDatabase();
+promptFeatures();
+
