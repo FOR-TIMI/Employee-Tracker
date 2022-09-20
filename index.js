@@ -8,6 +8,12 @@ const createDatabase = require('./db/db.js');
 const seedTables = require('./db/seeds.js');
 const createTables = require('./db/schemas.js');
 
+
+//To add design pattern
+const figlet = require('figlet');
+
+
+//Configuration for my sql connection
 const config =  {
     host: 'localhost',
     // Your MySQL username,
@@ -18,7 +24,7 @@ const config =  {
     database: 'employee_tracker'
 }
 
-
+// function to select tables
 const select =async function(sql){
     const pool = mysql.createPool(config).promise();
     const [rows] = await pool.query(sql);
@@ -28,18 +34,21 @@ const select =async function(sql){
    
 };
 
+//To return rows of data
 const get = async function(sql){
     const pool = mysql.createPool(config).promise();
     const [rows] = await pool.query(sql);
     return rows
 }
 
+// To update,insert,delete from any table
 const manipulateTable = async function(sql,params){
     const pool = mysql.createPool(config).promise();
     await pool.query(sql,params);
     promptFeatures();    
 };
-   
+
+// To prompt features and options
 function promptFeatures(){
     const department = new Department();
     const role = new Role();
@@ -87,8 +96,9 @@ function promptFeatures(){
        }
       
    }) 
-   }
+}
 
+//To create a class for department
 class Department{
 
 
@@ -189,6 +199,7 @@ class Department{
 
 }
 
+//To create a class of a role
 class Role{
 
     async add(){
@@ -265,6 +276,7 @@ class Role{
     }
 }
 
+//To create a class of an Employee
 class Employee{
     viewAll(){
         const sql =  `SELECT e.id, e.first_name, e.last_name,
@@ -394,6 +406,7 @@ class Employee{
     }
 }
 
+//To initialize database creation and initialization
 async function init(){
     const app = {};
     
@@ -418,11 +431,21 @@ async function init(){
       
 
     app.initializeDatabase();
-    await promptFeatures();
+   figlet('Employee Tracker', function(err, data) {
+        if (err) {
+            console.log('Something went wrong...');
+            console.dir(err);
+            return;
+        }
+        console.log(data)
+     promptFeatures();
+    });
+
     
 
 
 }
+
 init();
 
 
