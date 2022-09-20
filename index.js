@@ -66,9 +66,11 @@ function promptFeatures(){
                    'Add Role',
                    'Add Employee',
                    'Update Employee Role',
+                   'Update Employee Manager',
                    'Update department',
                    'Delete department',
-                   'Delete Role'
+                   'Delete Role',
+                   'Delete Employee'
                     ]
        }
    ]).then((answer) => {
@@ -87,11 +89,13 @@ function promptFeatures(){
            break;
            case 'Update Employee Role': employee.updateEmployeeRole();
            break;
+           case 'Update Employee Manager': employee.updateEmployeeManager();
+           break;
            case 'Update department': department.update();
            break;
            case 'Delete department': department.delete();
            break;
-           case 'Delete Role': role.delete();
+           case 'Delete Employee': employee.delete();
            break;
        }
       
@@ -267,7 +271,7 @@ class Role{
                 const role = roles.find(r => r.value === roleId)
                 const roleName = role.name
                 manipulateTable(sql,roleId)
-                console.log( chalk.red(`The ${roleName} role has been deleted`));
+                console.log( chalk.red(`\n The ${roleName} role has been deleted \n`));
             })
     }
 
@@ -280,7 +284,7 @@ class Role{
 class Employee{
     viewAll(){
         const sql =  `SELECT e.id, e.first_name, e.last_name,
-        m.first_name AS manager_name,
+        CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
         r.title AS role, r.salary,
         departments.name AS department
         FROM employees e 
@@ -371,7 +375,6 @@ class Employee{
 
     async updateEmployeeRole(){
 
-        
         const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
         const roles = await get(`SELECT id as value, title AS name from roles`);
         const questions = [
@@ -404,6 +407,67 @@ class Employee{
             console.log(chalk.green(` \n You set ${employeeName}'s role to ${roleName} \n`))
     })
     }
+    async updateEmployeeManager(){
+
+
+        
+        const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
+        const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
+                                    AS name
+                                    FROM employees 
+                                    WHERE manager_id IS NOT NULL`);
+        const questions = [
+            {
+            name : 'employeeId',
+            message: 'what employee would you like to update?',
+            type: 'list',
+            choices: employees
+            },
+            {
+            name : 'managerId',
+            message: 'what new manager would you like to set?',
+            type: 'list',
+            choices: managers
+            },
+        
+        ]
+        
+        inquirer.prompt(questions)
+        .then(({employeeId, managerId}) => {
+            const sql = `UPDATE employees
+            SET manager_id = ?
+            WHERE id = ?;
+            `;
+            const employee= employees.find(e => e.value === employeeId);
+            const employeeName = employee.name;
+            const manager = managers.find(m => m.value === managerId);
+            const managerName = manager.name
+            manipulateTable(sql,[managerId,employeeId]);
+            console.log(chalk.green(` \n You set ${employeeName}'s manager to ${managerName} \n`))
+    })
+    }
+
+    async delete(){
+        const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
+        const questions =  {
+            name: 'employeeId',
+            message: 'what role do you wish to delete?',
+            type: 'list',
+            choices : employees
+           }
+
+
+           inquirer.prompt(questions)
+           .then(({employeeId}) => {
+               const sql = `DELETE FROM employees WHERE id = ?`
+               const employee = employees.find(e => e.value === employeeId)
+               const employeeName = employee.name
+               manipulateTable(sql,employeeId)
+               console.log( chalk.red(`\n The ${employeeName} has been deleted from the employee table \n`));
+           })
+    }
+
+
 }
 
 //To initialize database creation and initialization
@@ -425,21 +489,17 @@ async function init(){
             //add sample data to tables
             fulfill_2(seedTables());
         });
+
          
       }
       
       
 
     app.initializeDatabase();
-   figlet('Employee Tracker', function(err, data) {
-        if (err) {
-            console.log('Something went wrong...');
-            console.dir(err);
-            return;
-        }
-        console.log(data)
-     promptFeatures();
-    });
+
+   
+    
+
 
     
 
@@ -448,6 +508,15 @@ async function init(){
 
 init();
 
+figlet('Employee Tracker',function(err, data) {
+    if (err) {
+        console.log('Something went wrong...');
+        console.dir(err);
+        return;
+    }
+    console.log(data)
+    promptFeatures();
+});
 
 
 
