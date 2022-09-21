@@ -4,21 +4,19 @@ const mysql = require('mysql2');
 require('dotenv').config();
 const cTable = require('console.table');
 
+//Create database and seed tables
 const createDatabase = require('./db/db.js');
 const seedTables = require('./db/seeds.js');
 const createTables = require('./db/schemas.js');
 
-const config =  {
-    host: 'localhost',
-    // Your MySQL username,
-    user: 'root',
-    // Your MySQL password
-    password: process.env.SQL_SECRET,
-    //The database name
-    database: 'employee_tracker'
-}
+//To set configuration
+const {config}= require('./db/config');
+
+//To add design pattern
+const figlet = require('figlet');
 
 
+// function to veiw all in tables
 const select =async function(sql){
     const pool = mysql.createPool(config).promise();
     const [rows] = await pool.query(sql);
@@ -28,18 +26,21 @@ const select =async function(sql){
    
 };
 
+//To return rows of data
 const get = async function(sql){
     const pool = mysql.createPool(config).promise();
     const [rows] = await pool.query(sql);
     return rows
 }
 
+// To update,insert,delete from any table
 const manipulateTable = async function(sql,params){
     const pool = mysql.createPool(config).promise();
     await pool.query(sql,params);
     promptFeatures();    
 };
-   
+
+// To prompt features and options
 function promptFeatures(){
     const department = new Department();
     const role = new Role();
@@ -57,9 +58,11 @@ function promptFeatures(){
                    'Add Role',
                    'Add Employee',
                    'Update Employee Role',
+                   'Update Employee Manager',
                    'Update department',
                    'Delete department',
-                   'Delete Role'
+                   'Delete Role',
+                   'Delete Employee'
                     ]
        }
    ]).then((answer) => {
@@ -78,17 +81,20 @@ function promptFeatures(){
            break;
            case 'Update Employee Role': employee.updateEmployeeRole();
            break;
+           case 'Update Employee Manager': employee.updateEmployeeManager();
+           break;
            case 'Update department': department.update();
            break;
            case 'Delete department': department.delete();
            break;
-           case 'Delete Role': role.delete();
+           case 'Delete Employee': employee.delete();
            break;
        }
       
    }) 
-   }
+}
 
+//To create a class for department
 class Department{
 
 
@@ -170,12 +176,14 @@ class Department{
 
    async delete(){
          const departments = await get(`SELECT id AS value, name FROM departments`);
-         const questions = [{
+         const questions = [
+            {
             name : 'departmentId',
             message: 'What department do you wish to delete?',
             type : 'list',
             choices: departments
-          }]
+          }
+        ]
 
          inquirer.prompt(questions)
          .then(({departmentId}) => {
@@ -187,8 +195,31 @@ class Department{
         })
     }
 
+    async viewTotalBudget(){
+        const departments = await get(`SELECT id AS value, name FROM departments`);
+        const questions =
+         [
+            {
+                name : 'departmentId',
+                message: 'What department\'s budget do you wish to see?',
+                type : 'list',
+                choices: departments
+            }
+        ]
+
+        inquirer.prompt(questions)
+        .then(({departmentId}) => {
+            const sql = `SELECT * FROM employees WHERE manager_id = ?` 
+            const deletedDepartment = departments.find(d => d.value === departmentId)
+            const deletedDepartmentName = deletedDepartment.name
+           manipulateTable(sql,departmentId);           
+           console.log(chalk.red(`\n The ${deletedDepartmentName} department was deleted \n`))
+       })
+    }
+
 }
 
+//To create a class of a role
 class Role{
 
     async add(){
@@ -256,7 +287,7 @@ class Role{
                 const role = roles.find(r => r.value === roleId)
                 const roleName = role.name
                 manipulateTable(sql,roleId)
-                console.log( chalk.red(`The ${roleName} role has been deleted`));
+                console.log( chalk.red(`\n The ${roleName} role has been deleted \n`));
             })
     }
 
@@ -265,10 +296,11 @@ class Role{
     }
 }
 
+//To create a class of an Employee
 class Employee{
     viewAll(){
         const sql =  `SELECT e.id, e.first_name, e.last_name,
-        m.first_name AS manager_name,
+        CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
         r.title AS role, r.salary,
         departments.name AS department
         FROM employees e 
@@ -359,7 +391,6 @@ class Employee{
 
     async updateEmployeeRole(){
 
-        
         const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
         const roles = await get(`SELECT id as value, title AS name from roles`);
         const questions = [
@@ -392,48 +423,98 @@ class Employee{
             console.log(chalk.green(` \n You set ${employeeName}'s role to ${roleName} \n`))
     })
     }
+    async updateEmployeeManager(){
+
+
+        
+        const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
+        const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
+                                    AS name
+                                    FROM employees 
+                                    WHERE manager_id IS NOT NULL`);
+        const questions = [
+            {
+            name : 'employeeId',
+            message: 'what employee would you like to update?',
+            type: 'list',
+            choices: employees
+            },
+            {
+            name : 'managerId',
+            message: 'what new manager would you like to set?',
+            type: 'list',
+            choices: managers
+            },
+        
+        ]
+        
+        inquirer.prompt(questions)
+        .then(({employeeId, managerId}) => {
+            const sql = `UPDATE employees
+            SET manager_id = ?
+            WHERE id = ?;
+            `;
+            const employee= employees.find(e => e.value === employeeId);
+            const employeeName = employee.name;
+            const manager = managers.find(m => m.value === managerId);
+            const managerName = manager.name
+            manipulateTable(sql,[managerId,employeeId]);
+            console.log(chalk.green(` \n You set ${employeeName}'s manager to ${managerName} \n`))
+    })
+    }
+
+    async delete(){
+        const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
+        const questions =  {
+            name: 'employeeId',
+            message: 'what role do you wish to delete?',
+            type: 'list',
+            choices : employees
+           }
+
+
+           inquirer.prompt(questions)
+           .then(({employeeId}) => {
+               const sql = `DELETE FROM employees WHERE id = ?`
+               const employee = employees.find(e => e.value === employeeId)
+               const employeeName = employee.name
+               manipulateTable(sql,employeeId)
+               console.log( chalk.red(`\n The ${employeeName} has been deleted from the employee table \n`));
+           })
+    }
+
+    async viewEmployeeByManager(){
+
+    }
+
+    async viewEmployeeByDepartment(){}
+
+
 }
 
-async function init(){
+//To initialize database creation and initialization of app
+async function init() {
     const app = {};
-    
-
-
-    app.initializeDatabase = async function(){
-        const database = await new Promise(function (fulfill, reject) {
-            //create database
-            fulfill(createDatabase());
-        });
-        const tables = await new Promise(function (fulfill_1, reject_1) {
-            //create table
-            fulfill_1(createTables());
-        });
-        const seeds =  await new Promise(function (fulfill_2, reject_2) {
-            //add sample data to tables
-            fulfill_2(seedTables());
-        });
-         
-      }
-      
-      
+  
+    app.initializeDatabase = async function () {
+      await createDatabase();
+      await createTables();
+      await seedTables();
+    };
 
     app.initializeDatabase();
-    await promptFeatures();
-    
 
+    figlet('Employee Tracker',function(err, data) {
+        if (err) {
+            console.log('Something went wrong...');
+            console.dir(err);
+            return;
+        }
+        console.log(data)
+        promptFeatures();
+        
+    });
+  
+  }
 
-}
 init();
-
-
-
-
-
-
-
-
-
-
-
-
-
