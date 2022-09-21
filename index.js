@@ -9,6 +9,7 @@ const createDatabase = require('./db/db.js');
 const seedTables = require('./db/seeds.js');
 const createTables = require('./db/schemas.js');
 
+
 //To set configuration
 const {config}= require('./db/config');
 
@@ -16,8 +17,25 @@ const {config}= require('./db/config');
 const figlet = require('figlet');
 
 
-// function to veiw all in tables
-const select =async function(sql,params =''){
+
+//To add design pattern
+const figlet = require('figlet');
+
+
+//Configuration for my sql connection
+const config =  {
+    host: 'localhost',
+    // Your MySQL username,
+    user: 'root',
+    // Your MySQL password
+    password: process.env.SQL_SECRET,
+    //The database name
+    database: 'employee_tracker'
+}
+
+// function to select tables
+const select =async function(sql){
+
     const pool = mysql.createPool(config).promise();
     const [rows] = await pool.query(sql,params);
     const data = cTable.getTable(rows);
@@ -65,7 +83,10 @@ function promptFeatures(){
                    'Update department',
                    'Delete department',
                    'Delete Role',
+
                    'Delete Employee',
+
+                   'Delete Employee'
                     ]
        }
    ]).then((answer) => {
@@ -91,6 +112,7 @@ function promptFeatures(){
            case 'Delete department': department.delete();
            break;
            case 'Delete Employee': employee.delete();
+
            break;
            case 'View Departments total Budget': department.viewTotalBudget();
            break;
@@ -439,14 +461,12 @@ class Employee{
     })
     }
     async updateEmployeeManager(){
-
-
-        
+     
         const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
         const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
                                     AS name
                                     FROM employees 
-                                    WHERE manager_id IS NULL`);
+                                    WHERE manager_id IS NOT NULL`);
         const questions = [
             {
             name : 'employeeId',
@@ -498,6 +518,13 @@ class Employee{
            })
     }
 
+
+}
+
+
+
+
+
     async viewEmployeeByManager(){
         const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
                                     AS name
@@ -529,12 +556,29 @@ class Employee{
 
        select(sql,managerId);
 
+
+   
+  
     })
 
 }
 
+
     async viewEmployeeByDepartment(){
         const departments  = await get(`SELECT id AS value, name FROM departments`);
+
+
+
+figlet('Employee Tracker',function(err, data) {
+    if (err) {
+        console.log('Something went wrong...');
+        console.dir(err);
+        return;
+    }
+    console.log(data)
+    promptFeatures();
+});
+
 
         const questions = [
             {
