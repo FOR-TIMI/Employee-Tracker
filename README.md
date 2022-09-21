@@ -32,7 +32,7 @@ This command-line application is used to view and manage the departments, roles,
 
 
 ## Demo link
-https://drive.google.com/file/d/1KMDK_UP3AXFO-pA3ptJ8mALfMWRd7Chx/view
+https://drive.google.com/file/d/19iBi9sJrEH1Wrc2MU_6GTJUDEAK6kAjY/view
 
 ## Contribution
 Made with ❤️ by Timi
