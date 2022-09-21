@@ -17,9 +17,9 @@ const figlet = require('figlet');
 
 
 // function to veiw all in tables
-const select =async function(sql){
+const select =async function(sql,params =''){
     const pool = mysql.createPool(config).promise();
-    const [rows] = await pool.query(sql);
+    const [rows] = await pool.query(sql,params);
     const data = cTable.getTable(rows);
     console.log('\n', chalk.blue(data));
     promptFeatures();
@@ -51,6 +51,7 @@ function promptFeatures(){
            message: 'What would you like to do?',
            type : 'list',
            choices : [
+                   'View Departments total Budget',
                    'View All Departments',
                    'View All Roles',
                    'View All Employees',
@@ -88,6 +89,8 @@ function promptFeatures(){
            case 'Delete department': department.delete();
            break;
            case 'Delete Employee': employee.delete();
+           break;
+           case 'View Departments total Budget': department.viewTotalBudget();
            break;
        }
       
@@ -173,7 +176,7 @@ class Department{
 
    }
 
-
+   //To delete a department
    async delete(){
          const departments = await get(`SELECT id AS value, name FROM departments`);
          const questions = [
@@ -195,6 +198,7 @@ class Department{
         })
     }
 
+    //To get total budget of a department
     async viewTotalBudget(){
         const departments = await get(`SELECT id AS value, name FROM departments`);
         const questions =
@@ -209,11 +213,16 @@ class Department{
 
         inquirer.prompt(questions)
         .then(({departmentId}) => {
-            const sql = `SELECT * FROM employees WHERE manager_id = ?` 
-            const deletedDepartment = departments.find(d => d.value === departmentId)
-            const deletedDepartmentName = deletedDepartment.name
-           manipulateTable(sql,departmentId);           
-           console.log(chalk.red(`\n The ${deletedDepartmentName} department was deleted \n`))
+            const sql = `   SELECT departments.name AS department,
+                            CONCAT('$',SUM(r.salary)) AS totalBudget
+                            FROM employees e 
+                            LEFT JOIN  roles r
+                            ON e.role_id = r.id
+                            LEFT JOIN departments
+                            ON r.department_id = departments.id
+                            WHERE r.department_id = ?
+                        ;` 
+            select(sql,departmentId);           
        })
     }
 
@@ -487,7 +496,9 @@ class Employee{
 
     }
 
-    async viewEmployeeByDepartment(){}
+    async viewEmployeeByDepartment(){
+
+    }
 
 
 }
