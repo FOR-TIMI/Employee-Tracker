@@ -55,6 +55,8 @@ function promptFeatures(){
                    'View All Departments',
                    'View All Roles',
                    'View All Employees',
+                   'View employee by manager',
+                   'View employee by department',
                    'Add Department',
                    'Add Role',
                    'Add Employee',
@@ -63,7 +65,7 @@ function promptFeatures(){
                    'Update department',
                    'Delete department',
                    'Delete Role',
-                   'Delete Employee'
+                   'Delete Employee',
                     ]
        }
    ]).then((answer) => {
@@ -91,6 +93,10 @@ function promptFeatures(){
            case 'Delete Employee': employee.delete();
            break;
            case 'View Departments total Budget': department.viewTotalBudget();
+           break;
+           case 'View employee by manager': employee.viewEmployeeByManager();
+           break;
+           case 'View employee by department': employee.viewEmployeeByDepartment();
            break;
        }
       
@@ -440,7 +446,7 @@ class Employee{
         const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
                                     AS name
                                     FROM employees 
-                                    WHERE manager_id IS NOT NULL`);
+                                    WHERE manager_id IS NULL`);
         const questions = [
             {
             name : 'employeeId',
@@ -493,12 +499,76 @@ class Employee{
     }
 
     async viewEmployeeByManager(){
+        const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
+                                    AS name
+                                    FROM employees 
+                                    WHERE manager_id IS NULL`);
+            const questions = [
+            {
+                name : 'managerId',
+                message: 'what manager\'s employee would you like to see',
+                type: 'list',
+                choices: managers
+            }
+            ]
 
-    }
+            inquirer.prompt(questions)
+            .then(({managerId}) => {
+                const sql =`SELECT e.id,e.first_name,e.last_name,
+                                r.title AS role, r.salary,
+                                departments.name AS department
+                                FROM employees e
+                                LEFT JOIN  roles r
+                                ON e.role_id = r.id
+                                LEFT JOIN departments
+                                ON r.department_id = departments.id
+                                LEFT JOIN employees m
+                                ON e.manager_id = m.id
+                                WHERE m.id = ?
+                                ;`
+
+       select(sql,managerId);
+
+    })
+
+}
 
     async viewEmployeeByDepartment(){
+        const departments  = await get(`SELECT id AS value, name FROM departments`);
 
-    }
+        const questions = [
+            {
+                name : 'departmentId',
+                message: 'what department\'s employee would you like to see',
+                type: 'list',
+                choices: departments
+            }
+            ]
+
+            inquirer.prompt(questions)
+            .then(({departmentId}) => {
+
+
+       
+
+        const sql =`SELECT e.id, e.first_name, e.last_name,
+                    CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+                    r.title AS role, r.salary,
+                    departments.name AS department
+                    FROM employees e 
+                    LEFT JOIN employees m
+                    ON e.manager_id = m.id
+                    LEFT JOIN  roles r
+                    ON e.role_id = r.id
+                    LEFT JOIN departments
+                    ON r.department_id = departments.id
+                    WHERE r.department_id = ?
+                    `
+    
+                    select(sql,departmentId);
+    })
+
+   }
 
 
 }
