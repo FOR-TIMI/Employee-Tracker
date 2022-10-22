@@ -29,6 +29,7 @@ This command-line application is used to view and manage the departments, roles,
 ## Built With
 * NodeJS
 * MySQL
+* Inquirer
 
 
 ## Demo link
