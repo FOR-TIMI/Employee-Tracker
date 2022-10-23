@@ -32,6 +32,11 @@ This command-line application is used to view and manage the departments, roles,
 * Inquirer
 
 
+## Screenshot
+![image](https://user-images.githubusercontent.com/104241247/197381175-469ae85e-d46a-4d33-9d30-197ae34c3fc5.png)
+
+
+
 ## Demo link
 https://drive.google.com/file/d/19iBi9sJrEH1Wrc2MU_6GTJUDEAK6kAjY/view
 
