@@ -1,4 +1,4 @@
-# Employee-Tracker
+<h1 align="center">Employee Tracker</h1>
 
 ## Description
 This command-line application is used to view and manage the departments, roles, and employees in my company
