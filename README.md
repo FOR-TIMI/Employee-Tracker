@@ -40,6 +40,10 @@ This command-line application is used to view and manage the departments, roles,
 ## Demo link
 https://drive.google.com/file/d/19iBi9sJrEH1Wrc2MU_6GTJUDEAK6kAjY/view
 
+## Additional Information
+- For additional questions contact me via email on [femiladiranerife24@gmail.com](mailto:femiladiranerife24@gmail.com)
+- If you found this project somewhat useful, please feel free to follow me, add a star to this project so i know who you are and [view some other projects](https://github.com/FOR-TIMI/). 
+
 ## Contribution
 Made with ❤️ by Timi
 
