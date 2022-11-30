@@ -1,6 +1,7 @@
 
 const mysql = require('mysql2');
 require('dotenv').config()
+const {dbConfig} = require('./config')
 
 function createDatabase(){
   const app = {};
@@ -8,15 +9,8 @@ function createDatabase(){
   app.dbName = 'employee_tracker';
 
   app.databaseConnection = function(){
-    const con = mysql.createConnection(
-        {
-            host: 'localhost',
-            // Your MySQL username,
-            user: 'root',
-            // Your MySQL password
-            password: process.env.SQL_SECRET || this.password,
-        });
-        return con.promise();
+    const con = mysql.createConnection(dbConfig);
+    return con.promise();
   }
 
   app.createDatabase = async function(){

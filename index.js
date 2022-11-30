@@ -4,9 +4,18 @@ const mysql = require('mysql2');
 require('dotenv').config();
 const cTable = require('console.table');
 
+//Create database and seed tables
 const createDatabase = require('./db/db.js');
 const seedTables = require('./db/seeds.js');
 const createTables = require('./db/schemas.js');
+
+
+//To set configuration
+const {config}= require('./db/config');
+
+//To add design pattern
+const figlet = require('figlet');
+
 
 
 //To add design pattern
@@ -26,8 +35,9 @@ const config =  {
 
 // function to select tables
 const select =async function(sql){
+
     const pool = mysql.createPool(config).promise();
-    const [rows] = await pool.query(sql);
+    const [rows] = await pool.query(sql,params);
     const data = cTable.getTable(rows);
     console.log('\n', chalk.blue(data));
     promptFeatures();
@@ -59,9 +69,12 @@ function promptFeatures(){
            message: 'What would you like to do?',
            type : 'list',
            choices : [
+                   'View Departments total Budget',
                    'View All Departments',
                    'View All Roles',
                    'View All Employees',
+                   'View employee by manager',
+                   'View employee by department',
                    'Add Department',
                    'Add Role',
                    'Add Employee',
@@ -70,6 +83,9 @@ function promptFeatures(){
                    'Update department',
                    'Delete department',
                    'Delete Role',
+
+                   'Delete Employee',
+
                    'Delete Employee'
                     ]
        }
@@ -96,6 +112,13 @@ function promptFeatures(){
            case 'Delete department': department.delete();
            break;
            case 'Delete Employee': employee.delete();
+
+           break;
+           case 'View Departments total Budget': department.viewTotalBudget();
+           break;
+           case 'View employee by manager': employee.viewEmployeeByManager();
+           break;
+           case 'View employee by department': employee.viewEmployeeByDepartment();
            break;
        }
       
@@ -181,15 +204,17 @@ class Department{
 
    }
 
-
+   //To delete a department
    async delete(){
          const departments = await get(`SELECT id AS value, name FROM departments`);
-         const questions = [{
+         const questions = [
+            {
             name : 'departmentId',
             message: 'What department do you wish to delete?',
             type : 'list',
             choices: departments
-          }]
+          }
+        ]
 
          inquirer.prompt(questions)
          .then(({departmentId}) => {
@@ -199,6 +224,34 @@ class Department{
             manipulateTable(sql,departmentId);           
             console.log(chalk.red(`\n The ${deletedDepartmentName} department was deleted \n`))
         })
+    }
+
+    //To get total budget of a department
+    async viewTotalBudget(){
+        const departments = await get(`SELECT id AS value, name FROM departments`);
+        const questions =
+         [
+            {
+                name : 'departmentId',
+                message: 'What department\'s budget do you wish to see?',
+                type : 'list',
+                choices: departments
+            }
+        ]
+
+        inquirer.prompt(questions)
+        .then(({departmentId}) => {
+            const sql = `   SELECT departments.name AS department,
+                            CONCAT('$',SUM(r.salary)) AS totalBudget
+                            FROM employees e 
+                            LEFT JOIN  roles r
+                            ON e.role_id = r.id
+                            LEFT JOIN departments
+                            ON r.department_id = departments.id
+                            WHERE r.department_id = ?
+                        ;` 
+            select(sql,departmentId);           
+       })
     }
 
 }
@@ -408,9 +461,7 @@ class Employee{
     })
     }
     async updateEmployeeManager(){
-
-
-        
+     
         const employees = await get(`SELECT id as value,CONCAT(first_name,' ',last_name)  AS name from employees`);
         const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
                                     AS name
@@ -470,43 +521,53 @@ class Employee{
 
 }
 
-//To initialize database creation and initialization
-async function init(){
-    const app = {};
-    
 
 
-    app.initializeDatabase = async function(){
-        const database = await new Promise(function (fulfill, reject) {
-            //create database
-            fulfill(createDatabase());
-        });
-        const tables = await new Promise(function (fulfill_1, reject_1) {
-            //create table
-            fulfill_1(createTables());
-        });
-        const seeds =  await new Promise(function (fulfill_2, reject_2) {
-            //add sample data to tables
-            fulfill_2(seedTables());
-        });
 
-         
-      }
-      
-      
 
-    app.initializeDatabase();
+    async viewEmployeeByManager(){
+        const managers = await get(`SELECT id AS value, CONCAT(first_name, ' ' ,last_name)
+                                    AS name
+                                    FROM employees 
+                                    WHERE manager_id IS NULL`);
+            const questions = [
+            {
+                name : 'managerId',
+                message: 'what manager\'s employee would you like to see',
+                type: 'list',
+                choices: managers
+            }
+            ]
+
+            inquirer.prompt(questions)
+            .then(({managerId}) => {
+                const sql =`SELECT e.id,e.first_name,e.last_name,
+                                r.title AS role, r.salary,
+                                departments.name AS department
+                                FROM employees e
+                                LEFT JOIN  roles r
+                                ON e.role_id = r.id
+                                LEFT JOIN departments
+                                ON r.department_id = departments.id
+                                LEFT JOIN employees m
+                                ON e.manager_id = m.id
+                                WHERE m.id = ?
+                                ;`
+
+       select(sql,managerId);
+
 
    
-    
-
-
-    
-
+  
+    })
 
 }
 
-init();
+
+    async viewEmployeeByDepartment(){
+        const departments  = await get(`SELECT id AS value, name FROM departments`);
+
+
 
 figlet('Employee Tracker',function(err, data) {
     if (err) {
@@ -519,13 +580,66 @@ figlet('Employee Tracker',function(err, data) {
 });
 
 
+        const questions = [
+            {
+                name : 'departmentId',
+                message: 'what department\'s employee would you like to see',
+                type: 'list',
+                choices: departments
+            }
+            ]
+
+            inquirer.prompt(questions)
+            .then(({departmentId}) => {
 
 
+       
+
+        const sql =`SELECT e.id, e.first_name, e.last_name,
+                    CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+                    r.title AS role, r.salary,
+                    departments.name AS department
+                    FROM employees e 
+                    LEFT JOIN employees m
+                    ON e.manager_id = m.id
+                    LEFT JOIN  roles r
+                    ON e.role_id = r.id
+                    LEFT JOIN departments
+                    ON r.department_id = departments.id
+                    WHERE r.department_id = ?
+                    `
+    
+                    select(sql,departmentId);
+    })
+
+   }
 
 
+}
 
+//To initialize database creation and initialization of app
+async function init() {
+    const app = {};
+  
+    app.initializeDatabase = async function () {
+      await createDatabase();
+      await createTables();
+      await seedTables();
+    };
 
+    app.initializeDatabase();
 
+    figlet('Employee Tracker',function(err, data) {
+        if (err) {
+            console.log('Something went wrong...');
+            console.dir(err);
+            return;
+        }
+        console.log(data)
+        promptFeatures();
+        
+    });
+  
+  }
 
-
-
+init();

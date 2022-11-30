@@ -18,21 +18,21 @@ async function seedTables(){
      app.seedDepartments =   async function(){
          const sampleDepartmentData = ['Sales', 'Engineering','Finance','Legal']
          const sql = `INSERT INTO departments(name)VALUES(?);`
-         sampleDepartmentData.forEach(async department => await query(sql,department));
+         sampleDepartmentData.forEach(async (department) => await query(sql,department));
      }
     
        //Insert a roles to database
     app.seedRoles = async function(){
         const sql =  `INSERT INTO roles ( title , salary,department_id)VALUES (?,?,?)`;
         const sampleRoleData = [
-            {title:'Sales Lead', salary:100000,department_id:1 },
-            {title:'SalesPerson', salary:300000,department_id:1 },
-            {title:'Lead Engineer', salary:500000,department_id:2 },
-            {title:'Software Engineer', salary:600000,department_id:2 },
-            {title:'Account Manager', salary:450000,department_id:3 },
-            {title:'Accountant', salary:364000,department_id:3 },
-            {title:'Legal Team Lead', salary:424000,department_id:4 },
-            {title:'Lawyer', salary:700000,department_id:4 },
+            {title:'Sales Lead', salary:100000,department_id:4 },
+            {title:'SalesPerson', salary:300000,department_id:4 },
+            {title:'Lead Engineer', salary:500000,department_id:1},
+            {title:'Software Engineer', salary:600000,department_id:1 },
+            {title:'Account Manager', salary:450000,department_id:2 },
+            {title:'Accountant', salary:364000,department_id:2 },
+            {title:'Legal Team Lead', salary:424000,department_id:3 },
+            {title:'Lawyer', salary:700000,department_id:3 },
         ]
 
 
@@ -56,8 +56,8 @@ async function seedTables(){
 
     const sql = `INSERT INTO employees (first_name,last_name,role_id,manager_id)VALUES(?,?,?,?);`
 
-        sampleEmployeeData.forEach(e => {
-                query(sql,[e.first,e.last,e.roleId,e.managerId])
+        sampleEmployeeData.forEach(async e => {
+               await query(sql,[e.first,e.last,e.roleId,e.managerId])
         })
     }
 
